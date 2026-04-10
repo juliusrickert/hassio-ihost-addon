@@ -1,0 +1,44 @@
+name: Build Add-on Images
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "hassio-ihost-silabs-multiprotocol/**"
+      - "hassio-ihost-openthread-border-router/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.addon }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        include:
+          - addon: hassio-ihost-silabs-multiprotocol
+            image: "hassio-ihost-silabs-multiprotocol-{arch}"
+          - addon: hassio-ihost-openthread-border-router
+            image: "openthread-border-router"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build ${{ matrix.addon }}
+        uses: home-assistant/builder@2024.03.5
+        with:
+          args: >-
+            --all
+            --target /data/${{ matrix.addon }}
+            --image "${{ matrix.image }}"
+            --docker-hub "ghcr.io/juliusrickert"
+            --docker-hub-check
